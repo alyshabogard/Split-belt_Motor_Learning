@@ -1,0 +1,19 @@
+# The data is exported from Visual3D as a cell array
+# Left step lengths are stored in: data{1,1}{1,1}
+# Right step lengths are stored in: data {1,2}{1,1}
+
+# Step length asymmetry (SLA) is calculated as the fast step lengths - slow step lengths / fast step lengths + slow step lengths
+# Therefore, SLA will be calculated based on which leg was perturbed during the experiment
+
+# Select Fast Leg for Data Analysis
+# Type 1 in the console if the left treadmill belt was sped up or type 2 if the right treadmill belt was sped up
+fprintf('Is the fast leg the left leg (1) or right leg (2)?\n');
+choice=input(' ');
+
+# If the right leg was selected, it will calculate the following script:
+if choice==2
+    sla = (data{1,2}{1,1}-data{1,1}{1,1})./(data{1,1}{1,1}+data{1,2}{1,1});
+
+# Otherwise, it will calculate this script:
+elseif choice==1
+    sla = (data{1,1}{1,1}-data{1,2}{1,1})./(data{1,1}{1,1}+data{1,2}{1,1});
