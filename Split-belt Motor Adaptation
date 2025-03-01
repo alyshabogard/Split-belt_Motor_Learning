@@ -5,7 +5,7 @@ library(dplyr)
 # FUNCTION: Calculate Resting Metabolic Rate (RMR)
 # ---------------------------
 calc_rmr <- function(df, vo2_col, vco2_col, bm) {
-  rmr <- ((16890 / 60) * mean(df[[vo2_col]])) + ((4840 / 60) * mean(df[[vco2_col]]))
+  rmr <- ((16890 / 60) * mean(df[[vo2_col]], na.rm = TRUE)) + ((4840 / 60) * mean(df[[vco2_col]], na.rm = TRUE))
   return(rmr / bm)  # Normalize by body mass
 }
 
@@ -15,7 +15,7 @@ calc_rmr <- function(df, vo2_col, vco2_col, bm) {
 calc_power <- function(df, vo2_col, vco2_col, rmr, bm) {
   df <- df %>%
     mutate(
-      peronnet = ((16890 / 60) * !!sym(vo2_col)) + ((4840 / 60) * !!sym(vco2_col)),
+      peronnet = ((16890 / 60) * df[[vo2_col]]) + ((4840 / 60) * df[[vco2_col]]),
       netpower = (peronnet - rmr) / bm
     )
   return(df)
@@ -24,11 +24,11 @@ calc_power <- function(df, vo2_col, vco2_col, rmr, bm) {
 # ---------------------------
 # FUNCTION: Compute Step Length Asymmetry (SLA)
 # ---------------------------
-calc_sla <- function(left_steps, right_steps, fast_leg) {
+calc_sla <- function(sla_df, fast_leg) {
   if (fast_leg == "2") {
-    return((right_steps - left_steps) / (right_steps + left_steps))
+    return((sla_df$right_step - sla_df$left_step) / (sla_df$right_step + sla_df$left_step))
   } else {
-    return((left_steps - right_steps) / (left_steps + right_steps))
+    return((sla_df$left_step - sla_df$right_step) / (sla_df$right_step + sla_df$left_step))
   }
 }
 
@@ -37,6 +37,7 @@ calc_sla <- function(left_steps, right_steps, fast_leg) {
 # ---------------------------
 bm <- 60  # Enter body mass in kg
 df <- read.csv("metabolic_data.csv")  # Load metabolic data
+sla_df <- read.csv("sla_data.csv")    # Load step length asymmetry data
 
 # ---------------------------
 # CALCULATIONS: Compute RMR & Walking Net Power
@@ -54,12 +55,9 @@ baseline <- df %>%
 # Select the fast leg for analysis
 fast_leg <- readline(prompt = "Is the fast leg the left leg (1) or right leg (2)? ")
 
-# Example: Assuming data is stored in a list format
-left_steps <- data[[1]][[1]]
-right_steps <- data[[1]][[2]]
-
-sla <- calc_sla(left_steps, right_steps, fast_leg)
+# Compute SLA
+sla_values <- calc_sla(sla_df, fast_leg)
 
 # OUTPUT RESULTS
 print(paste("Resting Metabolic Rate (RMR):", rmr, "W/kg"))
-print(paste("Calculated SLA:", mean(sla)))
+print(paste("Calculated SLA:", mean(sla_values, na.rm = TRUE)))
