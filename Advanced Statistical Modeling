@@ -1,0 +1,97 @@
+# Load required packages
+library(tidyverse)
+library(lme4)
+library(brms)
+library(bayestestR)
+library(factoextra)
+library(ggplot2)
+
+# ---------------------------
+# LOAD & PREPARE DATA
+# ---------------------------
+# Load datasets, check for existence
+if (!file.exists("metabolic_data.csv") || !file.exists("asymmetry_data.csv")) {
+  stop("Error: Missing required CSV files.")
+}
+
+df <- read.csv("metabolic_data.csv")
+asym_df <- read.csv("asymmetry_data.csv")
+
+# Ensure required columns exist
+required_cols <- c("participant", "condition", "time", "vo2", "vco2", "netpower")
+missing_cols <- setdiff(required_cols, colnames(df))
+if (length(missing_cols) > 0) stop(paste("Error: Missing columns in metabolic_data.csv:", missing_cols))
+
+required_asym_cols <- c("participant", "condition", "STA", "SLA", "DSA", "PFA")
+missing_asym_cols <- setdiff(required_asym_cols, colnames(asym_df))
+if (length(missing_asym_cols) > 0) stop(paste("Error: Missing columns in asymmetry_data.csv:", missing_asym_cols))
+
+# Convert categorical variables
+df <- df %>% mutate(across(c(participant, condition), as.factor))
+asym_df <- asym_df %>% mutate(across(c(participant, condition), as.factor))
+
+# Merge datasets (handle missing participants gracefully)
+df <- full_join(df, asym_df, by = c("participant", "condition"))
+
+# ---------------------------
+# MIXED-EFFECTS MODELING (Repeated Measures)
+# ---------------------------
+# Model: Predict net metabolic power using asymmetry metrics
+metabolic_model <- lmer(
+  netpower ~ condition + STA + SLA + DSA + PFA + (1 | participant), 
+  data = df
+)
+summary(metabolic_model)
+ranef(metabolic_model)
+
+# ---------------------------
+# BAYESIAN REGRESSION
+# ---------------------------
+# Define Bayesian model (ensuring valid priors)
+bayes_model <- brm(
+  formula = netpower ~ condition + STA + SLA + DSA + PFA + (1 | participant), 
+  data = df,
+  family = gaussian(),
+  prior = c(
+    prior(normal(0, 5), class = "b"),
+    prior(student_t(3, 0, 10), class = "Intercept"),
+    prior(student_t(3, 0, 10), class = "sigma")
+  ),
+  iter = 4000, warmup = 1000, chains = 4, cores = 4
+)
+summary(bayes_model)
+plot(bayes_model)
+
+# ---------------------------
+# PRINCIPAL COMPONENT ANALYSIS (PCA)
+# ---------------------------
+# Ensure all PCA variables are numeric
+pca_data <- df %>% select(STA, SLA, DSA, PFA, netpower, vo2, vco2) %>% drop_na()
+
+# Convert categorical to numeric if needed
+if (any(!sapply(pca_data, is.numeric))) stop("Error: PCA variables must be numeric.")
+
+# Run PCA
+pca_results <- prcomp(pca_data, scale. = TRUE)
+fviz_eig(pca_results, addlabels = TRUE, main = "Variance Explained by PCA")
+
+# Fix PCA biplot issue: Convert participant to factor for grouping
+df$participant <- as.factor(df$participant)
+fviz_pca_biplot(pca_results, repel = TRUE, col.var = "black", col.ind = df$participant)
+
+# ---------------------------
+# VISUALIZATION OF RESULTS
+# ---------------------------
+ggplot(df, aes(x = condition, y = netpower, fill = condition)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Net Metabolic Power by Condition", x = "Condition", y = "Net Metabolic Power (W/kg)")
+
+ggplot(df, aes(x = SLA, y = netpower, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", color = "black", linetype = "dashed") +
+  theme_minimal() +
+  labs(title = "Step Length Asymmetry vs. Net Metabolic Power", x = "SLA", y = "Net Metabolic Power (W/kg)")
+
+# Save processed dataset
+write.csv(df, "processed_metabolic_asymmetry_data.csv", row.names = FALSE)
