@@ -1,7 +1,12 @@
-# Split-belt_Motor_Learning
+# Net Metabolic Power & Step Length Asymmetry Analysis 🏃‍♂️📊
 
-# Net metabolic power code (in R)
-This code helps calculate net metabolic power using the rate of oxygen consumption (VO2) and carbon dioxide production (VCO2). During our study. we estimated resting metabolic rate (RMR) from the average VO2 and VCO2 of the last 2 minutes of a 5-minute standing trial. The assumption being made is that predominately aerobic pathways are being utilized during the experiment. Thus, data with RER > 1 are excluded. We calculated net metabolic power for the resting and walking conditions by quantifying metabolic power from the Péronnet & Massicotte, 1991 regression equation. We then subtracted the average RMR and normalized to body mass to yield net metabolic power (W/kg). We observed the average duration to reach mean net metabolic power to be one minute. Therefore, we omitted the first minute of each condition from analysis.
+## Overview
+This repository contains an **R-based split-belt adaptation analysis pipeline** 
+The script:
+- Computes **resting metabolic rate (RMR)** from a standing trial.
+- Estimates **walking net metabolic power** using the Peronnet & Massicotte equation.
+- Computes **step length asymmetry (SLA)** based on treadmill perturbations.
 
-# Step length asymmetry (in MATLAB)
-This code helps calculate step length asymmetry (SLA) during a split-belt walking protocol. In our study, subjects learned to walk on a fully instrumented split-belt treadmill in which the belt speeds were controlled independently. We randomized the treadmill belt that we sped up. We collected lower limb kinematic data from a 10-camera motion capture system. Right and left leg step lengths were calculated in Visual3D and exported as MATLAB cell arrays. Then, the data was imported into MATLAB to calculate SLA by the equation: fast step lengths + slow step lengths / fast step lengths + slow step lengths. 
+## Usage
+- Required package: `dplyr`  
+- Update `metabolic_data.csv` with your file path.
